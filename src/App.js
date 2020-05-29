@@ -1,26 +1,72 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Fragment, useEffect, useState } from "react";
+import { Map, Marker, Popup, TileLayer } from "react-leaflet";
+import { Icon } from "leaflet";
+//import useSWR from "swr";
+import "./App.css";
+//import Axios from "axios";
+import Header from './Components/Header'
 
 function App() {
+  //const url = "https://tarjetafamilia.catamarca.gob.ar/api/v1/commerce/?format=vnd.api%2Bjson";
+  const [locales, guardarlocales] = useState([]);
+  const [InformacionLocales, setInformacionLocales] = useState(null);
+
+  const consultarapi = async () => {
+    const url = `https://tarjetafamilia.catamarca.gob.ar/api/v1/commerce/`;
+    const respuesta = await fetch(url);
+    const data = await respuesta.json();
+    guardarlocales(data.data);
+  };
+
+  useEffect(() => {
+    consultarapi();
+  }, []);
+
+  const Coordenadas = point => {
+    if (point !== null) {
+      return [point.coordinates[1], point.coordinates[0]];
+    } else return [0, 0];
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Fragment>
+
+      <Header />
+
+      <Map center={[-28.468722, -65.779009]} zoom={13}>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        />
+        {locales.map(informacion => (
+          <Marker
+            key={informacion.id}
+            position={Coordenadas(informacion.attributes.point)}
+            onclick={() => {
+              setInformacionLocales(informacion.attributes);
+            }}
+          />
+        ))}
+
+        {InformacionLocales ? (
+          <Popup
+            position={Coordenadas(InformacionLocales.point)}
+            onClose={() => {
+              setInformacionLocales(null);
+            }}
+          >
+            <div>
+              <p>
+                Comercio: <span>{InformacionLocales.name}</span>
+              </p>
+              <p>
+                Direccion: <span>{InformacionLocales.address}</span>
+              </p>
+            </div>
+          </Popup>
+        ) : null}
+      </Map>
+    </Fragment>
   );
 }
-
 export default App;
